@@ -2,8 +2,6 @@
 
 BrandTuna is a multi-agent system built with **LangGraph** that automates the end-to-end branding process. It transforms a simple business idea into a refined visual identity through an iterative "Creative-Critique" loop.
 
-![Tuna](screenshots/tuna.png)
-
 ## 🚀 Overview
 Most AI branding tools are "one-shot"—you get what you get. BrandTuna mimics a professional design agency by employing distinct agents that debate, critique, and refine concepts based on UI/UX heuristics, psychology, and market positioning.
 
