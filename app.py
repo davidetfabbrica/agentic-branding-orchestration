@@ -1,132 +1,78 @@
 import os
 import warnings
-# Suppress the Python 3.14 / Pydantic warnings
+from typing import TypedDict
+from dotenv import load_dotenv
+from google import genai
+from langgraph.graph import StateGraph, END
+from tenacity import retry, wait_random_exponential, stop_after_attempt
+
+# Silence warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
 
-from google import genai
-from typing import TypedDict, Dict, Any
-from dotenv import load_dotenv
-from langgraph.graph import StateGraph, END
-
-# --- 1. CONFIGURATION ---
+# Configuration
 load_dotenv()
-
-# Initialize without the http_options override to let the SDK choose the best path
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
-# Using the specific versioned ID from your list
 MODEL_ID = "gemini-flash-latest"
 
-# --- 2. THE STATE DEFINITION ---
+# 1. State Schema
 class BrandState(TypedDict):
     description: str
     brand_identity: str
     critique: str
     iteration_count: int
     is_approved: bool
+    marketing_copy: str
 
-# --- 3. AGENT: THE STRATEGIST ---
+# 2. Agent Definitions with Retry Logic
+@retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
 def strategist_agent(state: BrandState):
-    print(f"\n🎨 [STRATEGIST]: Processing iteration {state.get('iteration_count', 0) + 1}...")
-    
-    critique_context = ""
-    if state.get("critique"):
-        critique_context = f"\nREFINEMENT NEEDED: {state['critique']}"
+    print(f"\n🎨 [STRATEGIST]: Processing round {state.get('iteration_count', 0) + 1}...")
+    prompt = f"Role: Brand Strategist. Create a name, hex colors, and typography for: {state['description']}. Feedback to address: {state.get('critique', 'None')}"
+    response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+    return {"brand_identity": response.text, "iteration_count": state.get("iteration_count", 0) + 1}
 
-    prompt = f"""
-    You are a Lead Brand Strategist. 
-    Topic: {state['description']}
-    {critique_context}
-    
-    Provide a Brand Name, a 3-color Hex Palette, and a Typography recommendation.
-    """
-    
-    response = client.models.generate_content(
-        model=MODEL_ID,
-        contents=prompt
-    )
-    
-    return {
-        "brand_identity": response.text,
-        "iteration_count": state.get("iteration_count", 0) + 1
-    }
-
-# --- 4. AGENT: THE CRITIC ---
+@retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
 def critic_agent(state: BrandState):
-    print("🔍 [CRITIC]: Reviewing branding against UI/UX standards...")
-    
-    prompt = f"""
-    You are a Senior Design Critic. Review this branding:
-    {state['brand_identity']}
-    
-    If it fits the luxury/professional vibe and is UI-ready, you MUST start your response with the single word 'APPROVED'.
-    Otherwise, give specific 'Change Orders'.
-    """
-    
+    print("🔍 [CRITIC]: Reviewing branding...")
+    prompt = f"Role: Design Critic. Review this: {state['brand_identity']}. Start response with 'APPROVED' if ready, otherwise give Change Orders."
     response = client.models.generate_content(model=MODEL_ID, contents=prompt)
     feedback = response.text
-    
-    # We use .strip() to remove any hidden spaces or newlines before checking
-    is_approved = feedback.strip().upper().startswith("APPROVED")
-    
-    return {"critique": feedback, "is_approved": is_approved}
+    return {"critique": feedback, "is_approved": feedback.strip().upper().startswith("APPROVED")}
 
-# --- 5. THE GRAPH ORCHESTRATION ---
+@retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(3))
+def copywriter_agent(state: BrandState):
+    print("✍️ [COPYWRITER]: Writing launch copy...")
+    prompt = f"Role: Luxury Copywriter. Write a 3-sentence welcome email and tagline for: {state['brand_identity']}."
+    response = client.models.generate_content(model=MODEL_ID, contents=prompt)
+    return {"marketing_copy": response.text}
+
+# 3. Workflow
 workflow = StateGraph(BrandState)
-
 workflow.add_node("strategist", strategist_agent)
 workflow.add_node("critic", critic_agent)
+workflow.add_node("copywriter", copywriter_agent)
 
 workflow.set_entry_point("strategist")
 workflow.add_edge("strategist", "critic")
 
-def router_logic(state: BrandState):
-    # Stop if approved or if we've tried 3 times
-    if state["is_approved"] or state["iteration_count"] >= 3:
-        return "end"
-    return "refine"
+def router(state: BrandState):
+    return "proceed" if state["is_approved"] or state["iteration_count"] >= 3 else "refine"
 
-workflow.add_conditional_edges(
-    "critic", 
-    router_logic, 
-    {"end": END, "refine": "strategist"}
-)
+workflow.add_conditional_edges("critic", router, {"proceed": "copywriter", "refine": "strategist"})
+workflow.add_edge("copywriter", END)
+app = workflow.compile()
 
-brand_tuna_app = workflow.compile()
-
-# --- 6. RUN THE CANNING LINE ---
+# 4. Execution
 if __name__ == "__main__":
-    print(f"🚀 BrandTuna is online using {MODEL_ID}...")
+    print("🚀 BrandTuna Agency Online...")
+    state = {"description": "Luxury watch marketplace", "iteration_count": 0, "is_approved": False, "brand_identity": "", "critique": "", "marketing_copy": ""}
     
-    initial_input = {
-        "description": "A luxury watch marketplace for high-end collectors.",
-        "iteration_count": 0,
-        "is_approved": False
-    }
-    
-    # This dictionary will hold the "Full Picture" as it evolves
-    full_state = initial_input.copy()
-
-    for event in brand_tuna_app.stream(initial_input):
+    final_state = state
+    for event in app.stream(state):
         for node, data in event.items():
-            # Update our full_state with whatever the latest node just produced
-            full_state.update(data)
+            final_state.update(data)
             
-            if node == "critic":
-                status = "✅ APPROVED" if data.get('is_approved') else "❌ REJECTED"
-                print(f"Result: {status}")
-                print(f"Feedback: {data.get('critique', '')[:100]}...")
-
-    # --- 7. EXPORT TO PORTFOLIO ---
-    # Now we check our accumulated 'full_state'
-    if full_state.get("is_approved"):
-        filename = "brand_brief.md"
-        with open(filename, "w") as f:
-            f.write(f"# BrandTuna Brief: {full_state['description']}\n\n")
-            f.write("## Final Identity\n")
-            f.write(full_state.get("brand_identity", "No identity generated."))
-            f.write("\n\n---\n")
-            f.write("## Critic's Final Review\n")
-            f.write(full_state.get("critique", "No critique provided."))
-        
-        print(f"\n✨ SUCCESS! Your brand brief has been saved to: {filename}")
+    if final_state.get("marketing_copy"):
+        with open("brand_brief.md", "w") as f:
+            f.write(f"# Brand Brief: {final_state['description']}\n\n{final_state['brand_identity']}\n\n## Launch Copy\n{final_state['marketing_copy']}")
+        print("\n✨ SUCCESS! Saved to brand_brief.md")
