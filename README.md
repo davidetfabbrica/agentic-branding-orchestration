@@ -27,7 +27,7 @@ BrandTuna uses an **Agentic Workflow** built with **LangGraph**. Instead of a si
 4. **Execute:** `python3 app.py`
 
 ## 📊 Example Output
-Upon completion, the system generates a `brand_brief.md` file containing the final identity and the Critic's notes.
+Upon completion, the system generates a `brand_brief.md` file containing the final identity and the Critic's notes.<br>
 *View an example output in _docs/sample-output.md_ *
 
 ---
