@@ -1,26 +1,30 @@
-# BrandTuna: An Agentic Design & Branding Orchestrator
+# BrandTuna Agency 🐟
+**An Autonomous Multi-Agent Branding System powered by Gemini & LangGraph.**
 
-BrandTuna is a multi-agent system built with **LangGraph** that automates the end-to-end branding process. It transforms a simple business idea into a refined visual identity through an iterative "Creative-Critique" loop.
+BrandTuna is a multi-agent AI system that simulates a professional creative agency. It streamlines the branding process by orchestrating specialized AI "agents" that collaborate, critique, and refine brand identities until they meet high-end UI/UX standards.
 
-## 🚀 Overview
-Most AI branding tools are "one-shot"—you get what you get. BrandTuna mimics a professional design agency by employing distinct agents that debate, critique, and refine concepts based on UI/UX heuristics, psychology, and market positioning.
+## 🛠️ The Architecture
+BrandTuna uses an **Agentic Workflow** built with **LangGraph**. Instead of a simple prompt-response chain, the system features a recursive loop where agents check each other's work:
 
-## 🧠 The Agentic Workflow
-This project utilizes a **Stateful Graph** architecture:
-1.  **The Strategist:** Defines the brand persona and naming.
-2.  **The Designer:** Prototypes visual styles and color palettes.
-3.  **The Critic:** An autonomous evaluator that checks the work against accessibility standards (WCAG), color psychology, and competitor saturation.
-4.  **The Refiner:** Adjusts the output based on the Critic’s feedback.
-5.  **The Producer:** Generates the final "Brand Bible" and asset suite.
+1. **The Strategist:** Generates initial brand concepts, color palettes, and typography.
+2. **The Critic:** Acts as a design gatekeeper, enforcing professional standards and providing "Change Orders."
+3. **The Copywriter:** Once the Critic approves the identity, this agent generates high-end launch copy.
 
-## 🛠️ Tech Stack
-* **Orchestration:** [LangGraph](https://www.langchain.com/langgraph) (for stateful, cyclic multi-agent flows)
-* **LLM:** GPT-4o or Claude 3.5 Sonnet (for reasoning and critique)
-* **Image Generation:** DALL-E 3 / Flux (via API for prototyping)
-* **Interface:** Streamlit or Next.js (for the real-time agent "thought" display)
-* **Language:** Python 3.11+
+## 🚀 Key Engineering Features
+* **Resilient Multi-Agent Loop:** Uses `LangGraph` to manage state transitions between agents.
+* **Intelligent Error Handling:** Implemented `Tenacity` with exponential backoff to handle API rate limits (`429 RESOURCE_EXHAUSTED`) gracefully.
+* **Automated Deliverables:** Instead of just terminal output, the system programmatically generates a formatted `brand_brief.md` file for stakeholders.
+* **Cutting-Edge Stack:** Built using the 2026 Google Gemini GenAI SDK and Python 3.14.
 
-## 📈 Key Portfolio Highlights
-* **Cyclic Graphs:** Implementation of a "Critic-Loop" that prevents hallucinations and improves quality.
-* **Domain-Specific Logic:** Encoded UI/UX heuristics and psychological principles into agent personas.
-* **State Management:** Handling shared memory across multiple agents to maintain brand consistency.
+## 📦 How to Run
+1. **Clone the repo:** `git clone [your-repo-link]`
+2. **Install dependencies:** `pip install -r requirements.txt`
+3. **Configure:** Create a `.env` file with your `GOOGLE_API_KEY`.
+4. **Execute:** `python3 app.py`
+
+## 📊 Example Output
+Upon completion, the system generates a `brand_brief.md` file containing the final identity and the Critic's notes.
+*View an example output in the [/examples](/examples) folder.*
+
+---
+*Built for the 2026 AI Developer landscape.*
