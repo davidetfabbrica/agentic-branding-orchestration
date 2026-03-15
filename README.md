@@ -10,6 +10,10 @@ BrandTuna uses an **Agentic Workflow** built with **LangGraph**. Instead of a si
 2. **The Critic:** Acts as a design gatekeeper, enforcing professional standards and providing "Change Orders."
 3. **The Copywriter:** Once the Critic approves the identity, this agent generates high-end launch copy.
 
+![BrandTuna Logic](assets/terminal-output.png)
+![BrandTuna Logic](assets/terminal-output2.png)
+![BrandTuna Logic](assets/terminal-output3.png)
+
 ## 🚀 Key Engineering Features
 * **Resilient Multi-Agent Loop:** Uses `LangGraph` to manage state transitions between agents.
 * **Intelligent Error Handling:** Implemented `Tenacity` with exponential backoff to handle API rate limits (`429 RESOURCE_EXHAUSTED`) gracefully.
@@ -24,7 +28,7 @@ BrandTuna uses an **Agentic Workflow** built with **LangGraph**. Instead of a si
 
 ## 📊 Example Output
 Upon completion, the system generates a `brand_brief.md` file containing the final identity and the Critic's notes.
-*View an example output in the [/examples](/examples) folder.*
+*View an example output in _docs/sample-output.md_ *
 
 ---
 *Built for the 2026 AI Developer landscape.*
