@@ -1,79 +1,80 @@
-# 🐟 Technical Specification: BrandTuna Agentic Workflow
-**Status**: Proposed
+# Technical Specification: BrandTuna Agentic Workflow
+Status: Accepted
 
-**Author:** davidetfabbrica
+Author: DT
 
-**Date:** Feb 2026
+Date: March 2026
 
-**Stakeholders:** Engineering, UI/UX Design
+Stakeholders: Engineering, UI/UX Design
 
 ## 1. Problem Statement
 Traditional AI branding tools often produce "generic" results because they lack a feedback loop. A single prompt to a standard LLM cannot balance market psychology, accessibility standards, and competitive differentiation simultaneously.
 
-BrandBot solves this by implementing an agentic "Human-in-the-loop" workflow that mimics a professional design agency's internal critique cycle.
+BrandTuna solves this by implementing an agentic workflow that mimics a professional design agency's internal critique cycle, using multi-agent collaboration to refine outputs.
 
 ## 2. Proposed Architecture
-We will utilize a Directed Acyclic Graph (DAG) with Cyclic Loops powered by LangGraph.
+We utilize a Directed Acyclic Graph (DAG) with cyclic loops powered by LangGraph to allow for iterative refinement.
 
 ### 2.1 System Diagram (Logic Flow)
-Input: User provides business description + industry (e.g., Fintech, Horology).
+Input: User provides a business description.
 
-- **Node 1:** The Strategist: Generates brand values and naming.
+Node 1: The Strategist: Generates brand values, names, color palettes, and typography.
 
-- **Node 2:** The Designer: Proposes visual identity (Typography, Palette).
+Node 2: The Critic (Gatekeeper): Evaluates the output against professional standards.
 
-- **Node 3:** The Critic (The Gatekeeper): * If critique_score < 8: Route back to Designer.
+If criteria are not met, provides specific "Change Orders" and routes back to The Strategist.
 
-If critique_score >= 8: Route to Asset Producer.
+If criteria are met, routes to The Copywriter.
 
-- **Output:** Final Brand Bible and Visual Assets.
+Node 3: The Copywriter: Once approved, drafts the final luxury-grade welcome announcement.
+
+Output: A comprehensive brand_brief.md file.
 
 ### 2.2 The State Object
-The system maintains a global AgentState to ensure context is never lost:
+The system maintains a global BrandState to ensure context consistency:
 
 ```python
-#python
-class AgentState(TypedDict):
-    industry: str
-    company_description: str
-    brand_identity: dict        # Names, Colors, Fonts
-    critique_history: List[str] # Logs of what was rejected
-    iterations: int             # Guardrail to prevent infinite loops
+class BrandState(TypedDict):
+    description: str
+    brand_identity: str
+    critique: str
+    iteration_count: int
     is_approved: bool
+    marketing_copy: str
 ```
 ## 3. Technology Stack Choice & Justification
 | Component | Technology | Justification |
 |-----------|------------|---------------|
-| Orchestration | LangGraph | Supports cycles. Standard LangChain chains are linear; LangGraph allows the "Critic" to send the "Designer" back to the drawing board. |
-| Reasoning Engine | GPT-4o / Claude 3.5 |High "Reasoning" capabilities required for the Critic agent to understand UI/UX heuristics.|
-| Visual Engine | DALL-E 3 / Flux.1 |State-of-the-art text-to-image with strong adherence to color hex codes and layout instructions. |
-| Frontend| Streamlit | Rapid prototyping for Python. Allows us to render the "Agent Thoughts" in a clean sidebar.|
+| Orchestration | LangGraph | Supports cycles. Allows the "Critic" to send the "Strategist" back for refinement. |
+| Reasoning Engine | Google Gemini | High reasoning performance with native integration via the 2026 Google GenAI SDK.|
+| Resilience | Tenacity | Implements exponential backoff to handle 429 RESOURCE_EXHAUSTED errors in the free-tier environment. |
+| Persistence | Markdown | Outputs final deliverables to a formatted brand_brief.md for professional review. |
 
 ## 4. Key Design Decisions (ADR)
 ### ADR 001: Use of Graph-Based Orchestration
-- **Context:** We need a way to handle multi-turn refinements.
+- **Context:** We need to handle multi-turn refinements between specialized agents.
 
-- **Decision:** Use LangGraph over a simple while loop.
+- **Decision:** Use LangGraph to define clear nodes and conditional edges.
 
-- **Consequence:** Better observability. Each "node" in the graph can be logged and debugged independently.
-
+- **Consequence:** Modular architecture where each agent can be updated or replaced independently.
+  
 ### ADR 002: Separating Critique from Generation
 - **Context:** LLMs struggle to be self-critical in a single pass (Self-Bias).
 
-- **Decision:** We define a specific "Critic" persona with a separate system prompt focused strictly on "Negative Construction" and "Heuristics."
+- **Decision:** Define a specific "Critic" persona with a prompt focused strictly on heuristic evaluation and negative construction.
 
-- **Consequence:** Higher quality output and more realistic "Agentic" behavior.
+- **Consequence:** Higher quality, more curated output compared to single-shot generation.
 
 ### ADR 003: Safety Guardrails (Iteration Cap)
-- **Context:** Agents could theoretically argue forever (Infinite Loop).
-
+- **Context:** Agents could theoretically loop indefinitely.
+  
 - **Decision:** Implement a hard cap of 3 iterations in the Graph state.
 
-- **Consequence:** Ensures API cost control and predictable user experience.
+- **Consequence:** Ensures predictable completion times and stays within API usage constraints.
 
 ## 5. Test Plan
-- **Unit Tests:** Validate that the Critic correctly identifies "Poor Accessibility" in a mock colour palette (e.g., White text on Yellow).
+- **Unit Tests:** Validate that the Critic correctly triggers a retry if branding is deemed insufficient.
 
-- **Integration Tests:** Ensure the State object updates correctly when moving from Designer to Critic.
+- **Integration Tests:** Ensure the BrandState dictionary passes data correctly between the Strategist, Critic, and Copywriter nodes.
 
-- **User Acceptance:** A "Human-in-the-loop" check where the user can override the Critic's rejection.
+- **Resilience Testing:** Verify that the tenacity decorator correctly retries requests upon encountering rate-limit errors.
